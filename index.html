@@ -66,6 +66,7 @@
   .btn2:hover { filter:brightness(1.1); }
   .btn2 input { display:none; }
   .chk { font-family:'Oswald',sans-serif; font-size:14px; color:#aeb6bf; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  #tol { width:120px; accent-color:#d8ab3e; }
   .logo-center { width:23cqw; height:auto; object-fit:contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,.55)); }
 
   /* ============ ROWS + SEAM ============ */
@@ -219,7 +220,8 @@ const DATA = {
 <div class="uploads">
   <label class="btn2">📁 Escudo izquierdo<input type="file" accept="image/*" onchange="loadLogo(event,'left')"></label>
   <label class="btn2">📁 Escudo derecho<input type="file" accept="image/*" onchange="loadLogo(event,'right')"></label>
-  <label class="chk"><input type="checkbox" id="rmbg" checked> Quitar fondo del escudo</label>
+  <label class="chk"><input type="checkbox" id="rmbg" checked onchange="reapplyLogos()"> Quitar fondo</label>
+  <label class="chk">Tolerancia <input type="range" id="tol" min="8" max="120" value="45" oninput="reapplyLogos()"> <span id="tolval">45</span></label>
 </div>
 <div class="actions">
   <button class="btn" onclick="descargar()">⬇ Descargar imagen (PNG)</button>
@@ -263,7 +265,7 @@ const DATA = {
   let rightLogo = DATA.logoDer || "";
 
   // Quita el fondo (flood fill desde los bordes) y reescala. Devuelve dataURL PNG.
-  function process(img, remove){
+  function process(img, remove, tol){
     let W = img.naturalWidth, H = img.naturalHeight;
     const cap = 700, m = Math.max(W,H);
     if (m > cap){ const s = cap/m; W = Math.round(W*s); H = Math.round(H*s); }
@@ -274,7 +276,7 @@ const DATA = {
       const i0 = 0;
       const br = pdata[i0], bgc = pdata[i0+1], bb = pdata[i0+2], ba = pdata[i0+3];
       if (ba !== 0){
-        const th = 72*72;
+        const th = tol*tol;
         const match = i => { const dr=pdata[i]-br, dg=pdata[i+1]-bgc, db=pdata[i+2]-bb;
           return (dr*dr+dg*dg+db*db) <= th && pdata[i+3] > 0; };
         const visited = new Uint8Array(W*H);
@@ -295,18 +297,34 @@ const DATA = {
     return c.toDataURL('image/png');
   }
 
+  let rawLeft = null, rawRight = null;
+
   function loadLogo(ev, side){
     const file = ev.target.files[0]; if(!file) return;
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const out = process(img, document.getElementById('rmbg').checked);
-      if (side === 'left') leftLogo = out; else rightLogo = out;
-      URL.revokeObjectURL(url);
-      render();
+      if (side === 'left') rawLeft = img; else rawRight = img;
+      applyLogo(side);
     };
     img.src = url;
   }
+
+  function applyLogo(side){
+    const raw = side === 'left' ? rawLeft : rawRight;
+    if (!raw) return;
+    const rm = document.getElementById('rmbg').checked;
+    const tol = +document.getElementById('tol').value;
+    const out = process(raw, rm, tol);
+    if (side === 'left') leftLogo = out; else rightLogo = out;
+    render();
+  }
+
+  window.reapplyLogos = () => {
+    const tv = document.getElementById('tolval');
+    if (tv) tv.textContent = document.getElementById('tol').value;
+    applyLogo('left'); applyLogo('right');
+  };
 
   const BADGE_L = '<circle cx="21" cy="21" r="20" fill="#0f2b0f"/><circle cx="21" cy="21" r="20" fill="none" stroke="#caa84a" stroke-width="2.6"/><circle cx="21" cy="21" r="16.5" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/><path d="M21 10 C15 17 12 23 17 31 C19.5 27 19.5 23 21 20 C22.5 23 22.5 27 25 31 C30 23 27 17 21 10 Z" fill="#8ee06a"/>';
   const BADGE_R = '<circle cx="21" cy="21" r="20" fill="#0a1f42"/><circle cx="21" cy="21" r="20" fill="none" stroke="#3a83d6" stroke-width="2.6"/><circle cx="21" cy="21" r="16.5" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/><path d="M21 10 C15 18 11 24 17 32 C19.5 28 19.5 24 21 21 C22.5 24 22.5 28 25 32 C31 24 27 18 21 10 Z" fill="#c6e8ff"/>';
