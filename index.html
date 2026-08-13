@@ -61,7 +61,7 @@
   .imgbadge img { width:86%; height:86%; object-fit:contain; }
   .uploads { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center; }
   .btn2 { font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; letter-spacing:.03em;
-    color:#e6eaef; background:linear-gradient(180deg,#3a4049,#22262c); border-radius:8px;
+    color:#e6eaef; background:linear-gradient(180deg,#3a4049,#22262c); border:none; border-radius:8px;
     padding:11px 18px; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.4); }
   .btn2:hover { filter:brightness(1.1); }
   .btn2 input { display:none; }
@@ -148,6 +148,34 @@
     background: linear-gradient(135deg,#fff6cf,#d8ab3e 55%,#8a6320);
     box-shadow:0 0 8px rgba(246,226,122,.6), inset 0 0 4px rgba(255,255,255,.6); }
 
+  /* ============ MARCADOR ============ */
+  .score { position:relative; z-index:6; display:flex; justify-content:center;
+    margin:-0.6cqw 0 1.8cqw; }
+  .score.hidden { display:none; }
+  .score-in { position:relative; display:flex; align-items:center; justify-content:center;
+    gap:2.2cqw; padding:.9cqw 3.6cqw; }
+  .score-in::before { content:""; position:absolute; inset:0; z-index:-1;
+    clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.16) 0 8%, transparent 8% 92%, rgba(0,0,0,.4) 92% 100%),
+      linear-gradient(180deg,#333a44 0%,#1c2027 46%,#0e1014 100%);
+    box-shadow: inset 0 0 0 .18cqw rgba(255,255,255,.85), 0 6px 14px rgba(0,0,0,.5); }
+  .score .sc-n { font-family:'Anton',sans-serif; transform:skewX(-7deg);
+    font-size:5.4cqw; line-height:1.25; display:inline-block; padding:0 .12em;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-stroke:.26cqw rgba(18,22,30,.9); paint-order:stroke fill;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.7)); }
+  .score .sc-l { background:linear-gradient(180deg,#fff6cf,#e8c163 58%,#a9781f); }
+  .score .sc-r { background:linear-gradient(180deg,#ffffff,#bcdcff 58%,#3a83d6); }
+  .score .sc-d { width:1.5cqw; height:1.5cqw; transform:rotate(45deg);
+    background:linear-gradient(135deg,#fff6cf,#d8ab3e 55%,#8a6320);
+    box-shadow:0 0 7px rgba(246,226,122,.6), inset 0 0 4px rgba(255,255,255,.6); }
+
+  /* ============ SLOGAN EDITABLE ============ */
+  #tagline { outline:none; display:inline-block; min-width:8cqw; border-radius:4px; }
+  #tagline:hover { box-shadow:0 0 0 .18cqw rgba(246,226,122,.45); }
+  #tagline:focus { box-shadow:0 0 0 .18cqw rgba(246,226,122,.85); }
+
   /* ============ ACTIONS ============ */
   .actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
   .btn { font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; letter-spacing:.04em;
@@ -207,12 +235,20 @@ const DATA = {
     <span id="logoRight" class="topslot"></span>
   </div>
 
+  <div class="score" id="score">
+    <div class="score-in">
+      <span class="sc-n sc-l" id="scoreLeft">0</span>
+      <span class="sc-d"></span>
+      <span class="sc-n sc-r" id="scoreRight">0</span>
+    </div>
+  </div>
+
   <div class="rows" id="rows">
     <div class="seam"></div>
   </div>
 
   <div class="banner-wrap">
-    <div class="banner"><span id="tagline">DONDE NACEN LAS LEYENDAS</span></div>
+    <div class="banner"><span id="tagline" contenteditable="true" spellcheck="false">DONDE NACEN LAS LEYENDAS</span></div>
     <div class="diamond"></div>
   </div>
 </div>
@@ -220,14 +256,17 @@ const DATA = {
 <div class="uploads">
   <label class="btn2">📁 Escudo izquierdo<input type="file" accept="image/*" onchange="loadLogo(event,'left')"></label>
   <label class="btn2">📁 Escudo derecho<input type="file" accept="image/*" onchange="loadLogo(event,'right')"></label>
+  <label class="btn2">👑 Logo Imperial<input type="file" accept="image/*" onchange="loadLogo(event,'center')"></label>
+  <button class="btn2" type="button" onclick="resetCenterLogo()">↺ Logo original</button>
   <label class="chk"><input type="checkbox" id="rmbg" checked onchange="reapplyLogos()"> Quitar fondo</label>
   <label class="chk">Tolerancia <input type="range" id="tol" min="8" max="120" value="45" oninput="reapplyLogos()"> <span id="tolval">45</span></label>
+  <label class="chk"><input type="checkbox" id="showScore" checked onchange="render()"> Mostrar marcador</label>
 </div>
 <div class="actions">
   <button class="btn" onclick="descargar()">⬇ Descargar imagen (PNG)</button>
 </div>
 <div id="editor" class="editor"></div>
-<p class="hint">Editá los <b>nombres</b> haciendo clic sobre ellos directamente en el card. Abajo marcás el <b>ganador</b> de cada duelo (modo resultados), ponés capitán <b>(C)</b>, y <b>agregás o quitás</b> duelos. Los escudos se suben con los botones de arriba. Nada de esto aparece en el PNG salvo el card.</p>
+<p class="hint">Editá los <b>nombres</b> y el <b>slogan</b> haciendo clic sobre ellos directamente en el card. Abajo marcás el <b>ganador</b> de cada duelo (modo resultados), ponés capitán <b>(C)</b>, y <b>agregás o quitás</b> duelos. El <b>marcador</b> arriba de los duelos se calcula solo con los ganadores. Los escudos y el logo Imperial se cambian con los botones de arriba. Nada de esto aparece en el PNG salvo el card.</p>
 
 <svg width="0" height="0" style="position:absolute"><defs>
   <g id="badgeL">
@@ -264,6 +303,9 @@ const DATA = {
   let leftLogo  = DATA.logoIzq || "";
   let rightLogo = DATA.logoDer || "";
 
+  const centerImg = document.querySelector('.logo-center');
+  const DEFAULT_CENTER = centerImg.getAttribute('src');
+
   // Quita el fondo (flood fill desde los bordes) y reescala. Devuelve dataURL PNG.
   function process(img, remove, tol){
     let W = img.naturalWidth, H = img.naturalHeight;
@@ -297,33 +339,33 @@ const DATA = {
     return c.toDataURL('image/png');
   }
 
-  let rawLeft = null, rawRight = null;
+  const raw = { left: null, right: null, center: null };
 
   function loadLogo(ev, side){
     const file = ev.target.files[0]; if(!file) return;
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      if (side === 'left') rawLeft = img; else rawRight = img;
-      applyLogo(side);
-    };
+    img.onload = () => { raw[side] = img; applyLogo(side); };
     img.src = url;
   }
 
   function applyLogo(side){
-    const raw = side === 'left' ? rawLeft : rawRight;
-    if (!raw) return;
+    if (!raw[side]) return;
     const rm = document.getElementById('rmbg').checked;
     const tol = +document.getElementById('tol').value;
-    const out = process(raw, rm, tol);
-    if (side === 'left') leftLogo = out; else rightLogo = out;
+    const out = process(raw[side], rm, tol);
+    if (side === 'left') leftLogo = out;
+    else if (side === 'right') rightLogo = out;
+    else centerImg.src = out;
     render();
   }
+
+  window.resetCenterLogo = () => { raw.center = null; centerImg.src = DEFAULT_CENTER; };
 
   window.reapplyLogos = () => {
     const tv = document.getElementById('tolval');
     if (tv) tv.textContent = document.getElementById('tol').value;
-    applyLogo('left'); applyLogo('right');
+    applyLogo('left'); applyLogo('right'); applyLogo('center');
   };
 
   const BADGE_L = '<circle cx="21" cy="21" r="20" fill="#0f2b0f"/><circle cx="21" cy="21" r="20" fill="none" stroke="#caa84a" stroke-width="2.6"/><circle cx="21" cy="21" r="16.5" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/><path d="M21 10 C15 17 12 23 17 31 C19.5 27 19.5 23 21 20 C22.5 23 22.5 27 25 31 C30 23 27 17 21 10 Z" fill="#8ee06a"/>';
@@ -392,7 +434,17 @@ const DATA = {
       `;
       rows.appendChild(row);
     });
+    renderScore();
     renderEditor();
+  }
+
+  function renderScore(){
+    const l = model.filter(m => m.winner === 'left').length;
+    const r = model.filter(m => m.winner === 'right').length;
+    document.getElementById('scoreLeft').textContent  = l;
+    document.getElementById('scoreRight').textContent = r;
+    const on = document.getElementById('showScore').checked && (l + r > 0);
+    document.getElementById('score').classList.toggle('hidden', !on);
   }
   render();
 
